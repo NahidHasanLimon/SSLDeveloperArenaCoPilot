@@ -9,10 +9,47 @@ services:
       - ./:/var/www/html
     ports:
       - "8000:8000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      APP_ENV: local
+      APP_DEBUG: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: mysql
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_DATABASE: sslcopilot
+      DB_USERNAME: sslcopilot
+      DB_PASSWORD: sslcopilot
+      AI_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: llama3.2:latest
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: >
       sh -lc "
       composer install &&
-      test -f database/database.sqlite || touch database/database.sqlite &&
       php artisan migrate --graceful &&
       php artisan serve --host=0.0.0.0 --port=8000
       "
+  mysql:
+    image: mysql:8.4
+    container_name: sslcopilot-mysql
+    environment:
+      MYSQL_DATABASE: sslcopilot
+      MYSQL_USER: sslcopilot
+      MYSQL_PASSWORD: sslcopilot
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-proot"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_data:

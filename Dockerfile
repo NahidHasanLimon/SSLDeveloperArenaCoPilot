@@ -6,8 +6,9 @@ RUN apt-get update \
         unzip \
         libzip-dev \
         libsqlite3-dev \
+        default-mysql-client \
         sqlite3 \
-    && docker-php-ext-install pdo pdo_sqlite \
+    && docker-php-ext-install pdo pdo_sqlite pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
