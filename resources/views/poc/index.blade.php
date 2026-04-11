@@ -23,8 +23,9 @@
       </div>
       <nav class="top-links">
         <a href="#overview">Overview</a>
-        <a href="#session-api">Session API</a>
+        <a href="#session-api">Initiate Payment</a>
         <a href="#validation">Validation</a>
+        <a href="#refund-api">Refund</a>
         <a href="#assistant">AI Panel</a>
       </nav>
     </header>
@@ -40,9 +41,24 @@
         <div class="nav-group">
           <div class="nav-title">Core APIs</div>
           <a href="#session-api" class="doc-link">Initiate Payment</a>
-          <a href="#required-fields" class="doc-link">Required Parameters</a>
+          <a href="#session-ready" class="doc-link nav-sub-link">Ready the Parameters</a>
+          <a href="#session-request-params" class="doc-link nav-sub-link">Request Parameters</a>
+          <a href="#session-returned-params" class="doc-link nav-sub-link">Returned Parameters</a>
+          <a href="#session-emi" class="doc-link nav-sub-link">EMI Parameters</a>
           <a href="#validation" class="doc-link">Order Validation</a>
+          <a href="#validation-request-params" class="doc-link nav-sub-link">Request Parameters</a>
+          <a href="#validation-returned-params" class="doc-link nav-sub-link">Returned Parameters</a>
           <a href="#ipn" class="doc-link">IPN</a>
+        </div>
+        <div class="nav-group">
+          <div class="nav-title">Refund</div>
+          <a href="#refund-api" class="doc-link">Refund API</a>
+          <a href="#refund-request-params" class="doc-link nav-sub-link">Request Parameters</a>
+          <a href="#refund-returned-params" class="doc-link nav-sub-link">Returned Parameters</a>
+          <a href="#refund-query" class="doc-link nav-sub-link">Query Refund Status</a>
+          <a href="#transaction-query" class="doc-link">Transaction Query API</a>
+          <a href="#query-by-session" class="doc-link nav-sub-link">By Session ID</a>
+          <a href="#query-by-tran" class="doc-link nav-sub-link">By Transaction ID</a>
         </div>
         <div class="nav-group">
           <div class="nav-title">Sandbox</div>
@@ -53,46 +69,18 @@
 
       <main class="docs-content">
         <section class="doc-hero" id="overview">
-          <p class="kicker">Developer documentation POC</p>
-          <h1>SSLCommerz integration docs with AI chat and sandbox API rehearsal.</h1>
+          <p class="kicker">Documentation</p>
+          <h1>SSLCOMMERZ integration reference with an AI-assisted sandbox panel.</h1>
           <p class="lead">
-            This proof of concept keeps the documentation experience front and center,
-            then adds a right-side panel for AI-assisted chat and a sandbox-only
-            "Try This API" experience. Real RAG, embeddings, and vector search are
-            intentionally not implemented in this phase.
+            Use this page as an implementation-oriented reference for payment initiation,
+            IPN handling, order validation, refund initiation, and transaction query.
+            The documentation remains primary, while the right-side panel adds a
+            sandbox API workspace and future AI assistance surface.
           </p>
           <div class="notice">
-            <strong>Current POC scope:</strong> UI and UX only. The assistant uses a
-            small local knowledge base and the API tester generates a mocked sandbox
-            request and response so the documentation workflow can be validated before
-            backend AI integration.
-          </div>
-        </section>
-
-        <section class="doc-section" id="arena">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Developer Arena</p>
-              <h2>What this POC now covers</h2>
-            </div>
-          </div>
-          <div class="compact-grid four">
-            <article class="mini-card">
-              <strong>Core payment docs</strong>
-              <p>Overview, environment, session API, IPN, validation, refund, and transaction query coverage.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Initiate payload depth</strong>
-              <p>Authentication, EMI, customer, shipping, product verticals, cart data, and custom metadata.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Sandbox rehearsal</strong>
-              <p>Right-side API panel now targets sandbox only and exposes the request model more fully.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Future AI layer</strong>
-              <p>Chat and Try This API are designed as enhancement surfaces before full retrieval integration.</p>
-            </article>
+            <strong>Current scope:</strong> the documentation layout and sandbox API
+            rehearsal are implemented now. The AI layer is reserved for the next phase
+            for log analysis, payload analysis, NLP assistance, and troubleshooting.
           </div>
         </section>
 
@@ -171,163 +159,34 @@
             <button class="doc-action" type="button" data-api-target="initiate">Try This API</button>
           </div>
           <p class="body-copy">
-            The session creation step is the primary transaction bootstrap call. The
-            merchant server sends form-encoded checkout parameters, receives a session
-            response, and redirects the customer using the returned gateway URL.
+            For initiating payment processing, at first you need to enable HTTP IPN
+            Listener to listen the payments. So that you can update your database
+            accordingly even customer got connectivity issue to return back to your website.
           </p>
+          <div class="sub-anchor-block" id="session-ready">
+            <h3>Ready the Parameters</h3>
+            <p class="body-copy">
+              Some mandatory parameters need to pass to SSLCOMMERZ. It identify your
+              customers and orders. Also you have to pass the success, fail, cancel url
+              to redirect your customer after pay.
+            </p>
+          </div>
           <div class="code-card">
             <div class="code-title">Sandbox endpoint</div>
             <pre><code>POST https://sandbox.sslcommerz.com/gwprocess/v4/api.php</code></pre>
           </div>
-          <div class="param-table" id="initiateParamTable"></div>
-        </section>
-
-        <section class="doc-section" id="required-fields">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Parameters</p>
-              <h2>Common initiate transaction fields</h2>
-            </div>
+          <div class="sub-anchor-block" id="session-request-params">
+            <h3>Request Parameters</h3>
           </div>
-          <div class="compact-grid three">
-            <article class="field-card">
-              <strong>Authentication</strong>
-              <ul>
-                <li><code>store_id</code></li>
-                <li><code>store_passwd</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Transaction</strong>
-              <ul>
-                <li><code>total_amount</code></li>
-                <li><code>currency</code></li>
-                <li><code>tran_id</code></li>
-                <li><code>product_category</code></li>
-                <li><code>product_name</code></li>
-                <li><code>product_profile</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Redirect URLs</strong>
-              <ul>
-                <li><code>success_url</code></li>
-                <li><code>fail_url</code></li>
-                <li><code>cancel_url</code></li>
-                <li><code>ipn_url</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Customer</strong>
-              <ul>
-                <li><code>cus_name</code></li>
-                <li><code>cus_email</code></li>
-                <li><code>cus_add1</code></li>
-                <li><code>cus_city</code></li>
-                <li><code>cus_postcode</code></li>
-                <li><code>cus_country</code></li>
-                <li><code>cus_phone</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Shipping</strong>
-              <ul>
-                <li><code>shipping_method</code></li>
-                <li><code>ship_name</code></li>
-                <li><code>ship_add1</code></li>
-                <li><code>ship_city</code></li>
-                <li><code>ship_postcode</code></li>
-                <li><code>ship_country</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Custom values</strong>
-              <ul>
-                <li><code>value_a</code></li>
-                <li><code>value_b</code></li>
-                <li><code>value_c</code></li>
-                <li><code>value_d</code></li>
-              </ul>
-            </article>
+          <div class="param-table" id="initiateRequestParamTable"></div>
+          <div class="sub-anchor-block" id="session-returned-params">
+            <h3>Returned Parameters</h3>
           </div>
-        </section>
-
-        <section class="doc-section" id="advanced-fields">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Advanced Parameters</p>
-              <h2>EMI, logistics, product verticals, and cart metadata</h2>
-            </div>
+          <div class="param-table" id="initiateReturnedParamTable"></div>
+          <div class="sub-anchor-block" id="session-emi">
+            <h3>EMI Parameters</h3>
           </div>
-          <div class="compact-grid three">
-            <article class="field-card">
-              <strong>EMI</strong>
-              <ul>
-                <li><code>emi_option</code></li>
-                <li><code>emi_max_inst_option</code></li>
-                <li><code>emi_selected_inst</code></li>
-                <li><code>emi_allow_only</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Logistics</strong>
-              <ul>
-                <li><code>num_of_item</code></li>
-                <li><code>weight_of_items</code></li>
-                <li><code>logistic_pickup_id</code></li>
-                <li><code>logistic_delivery_type</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Airline vertical</strong>
-              <ul>
-                <li><code>hours_till_departure</code></li>
-                <li><code>flight_type</code></li>
-                <li><code>pnr</code></li>
-                <li><code>journey_from_to</code></li>
-                <li><code>third_party_booking</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Travel vertical</strong>
-              <ul>
-                <li><code>hotel_name</code></li>
-                <li><code>length_of_stay</code></li>
-                <li><code>check_in_time</code></li>
-                <li><code>hotel_city</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Telecom vertical</strong>
-              <ul>
-                <li><code>product_type</code></li>
-                <li><code>topup_number</code></li>
-                <li><code>country_topup</code></li>
-              </ul>
-            </article>
-            <article class="field-card">
-              <strong>Cart and gateway control</strong>
-              <ul>
-                <li><code>cart</code></li>
-                <li><code>product_amount</code></li>
-                <li><code>vat</code></li>
-                <li><code>discount_amount</code></li>
-                <li><code>convenience_fee</code></li>
-                <li><code>allowed_bin</code></li>
-                <li><code>multi_card_name</code></li>
-              </ul>
-            </article>
-          </div>
-        </section>
-
-        <section class="doc-section" id="response-fields">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Response Model</p>
-              <h2>Important fields returned from initiate-payment</h2>
-            </div>
-          </div>
-          <div class="table-like" id="returnedParamsTable"></div>
+          <div class="param-table" id="initiateEmiParamTable"></div>
         </section>
 
         <section class="doc-section" id="integration-modes">
@@ -369,9 +228,10 @@
             <button class="doc-action" type="button" data-api-target="validation">Try This API</button>
           </div>
           <p class="body-copy">
-            Redirect status alone should not be treated as final payment truth. Once
-            the customer returns or an IPN is received, the merchant backend should
-            validate the transaction before confirming payment.
+            After knowing that the post keys are valid and no moletion done with the
+            request, now it is the time to validate your transaction for amount and
+            transaction. It will only treated as valid if amount and transaction status
+            are valid at SSL End.
           </p>
           <div class="table-like">
             <div class="row">
@@ -383,7 +243,10 @@
               <code>risk_level 0 = safe, risk_level 1 = risky</code>
             </div>
           </div>
-          <div class="param-table" id="validationParamTable"></div>
+          <div class="sub-anchor-block" id="validation-request-params"><h3>Request Parameters</h3></div>
+          <div class="param-table" id="validationRequestParamTable"></div>
+          <div class="sub-anchor-block" id="validation-returned-params"><h3>Returned Parameters</h3></div>
+          <div class="param-table" id="validationReturnedParamTable"></div>
         </section>
 
         <section class="doc-section" id="ipn">
@@ -394,10 +257,9 @@
             </div>
           </div>
           <p class="body-copy">
-            IPN improves reliability because the browser may never return to your
-            success page. This is why the right-side panel in this POC is positioned
-            as documentation enhancement, not as a replacement for backend validation
-            and payment notification handling.
+            You must develop the IPN url to receive the payment notification. Customer
+            session will not work in this server to server flow, so back-end IPN plays a
+            very important role to update your backend office.
           </p>
         </section>
 
@@ -445,10 +307,7 @@
             <button class="doc-action" type="button" data-api-target="refund">Try This API</button>
           </div>
           <p class="body-copy">
-            Refund requests are issued against the sandbox validator layer using the
-            original bank transaction reference, refund amount, and merchant remarks.
-            This POC keeps the refund experience in the same documentation rhythm as
-            the rest of the payment APIs.
+            Use the refund API to initiate a refund against an existing bank transaction.
           </p>
           <div class="table-like">
             <div class="row">
@@ -468,7 +327,13 @@
               <code>json or xml</code>
             </div>
           </div>
-          <div class="param-table" id="refundParamTable"></div>
+          <div class="sub-anchor-block" id="refund-request-params"><h3>Request Parameters</h3></div>
+          <div class="param-table" id="refundRequestParamTable"></div>
+          <div class="sub-anchor-block" id="refund-returned-params"><h3>Returned Parameters</h3></div>
+          <div class="param-table" id="refundReturnedParamTable"></div>
+          <div class="sub-anchor-block" id="refund-query"><h3>Query Refund Status</h3></div>
+          <div class="param-table" id="refundQueryParamTable"></div>
+          <div class="param-table stacked-gap" id="refundQueryReturnedParamTable"></div>
         </section>
 
         <section class="doc-section" id="transaction-query">
@@ -480,37 +345,15 @@
             <button class="doc-action" type="button" data-api-target="transactionQuery">Try This API</button>
           </div>
           <p class="body-copy">
-            Query-style endpoints help merchants re-check payment status or fetch
-            transaction context later using a transaction id or stored session key.
+            You can query your transaction status any time while you want. For ticketing
+            system or product limitation, it will help you to release before recheck.
           </p>
-          <div class="param-table" id="queryParamTable"></div>
-        </section>
-
-        <section class="doc-section" id="related-products">
-          <div class="section-head">
-            <div>
-              <p class="section-kicker">Related Modules</p>
-              <h2>Other official developer arena entry points</h2>
-            </div>
-          </div>
-          <div class="compact-grid four">
-            <article class="mini-card">
-              <strong>Library resources</strong>
-              <p>Official integration libraries and starter resources are referenced from the developer arena.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Invoice API</strong>
-              <p>Additional productized payment workflows are exposed alongside the core integration docs.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Google Pay integration</strong>
-              <p>The developer site also links to Google Pay-specific integration material.</p>
-            </article>
-            <article class="mini-card">
-              <strong>Quick Bank Pay</strong>
-              <p>Quick Bank Pay is listed as a separate official developer module from the arena landing page.</p>
-            </article>
-          </div>
+          <div class="sub-anchor-block" id="query-by-session"><h3>By Session ID</h3></div>
+          <div class="param-table" id="querySessionRequestParamTable"></div>
+          <div class="param-table stacked-gap" id="querySessionReturnedParamTable"></div>
+          <div class="sub-anchor-block" id="query-by-tran"><h3>By Transaction ID</h3></div>
+          <div class="param-table" id="queryTranRequestParamTable"></div>
+          <div class="param-table stacked-gap" id="queryTranReturnedParamTable"></div>
         </section>
       </main>
 
@@ -528,14 +371,15 @@
           <p class="panel-kicker">AI extension panel</p>
           <h2>Chat + Try This API</h2>
           <p>
-            This is the enhancement layer for the documentation experience. It is
-            intentionally sandbox-focused and powered by mocked local logic for now.
-            The long-term goal is an AI-centric panel for log analysis, payload
-            review, NLP-based doc assistance, and troubleshooting workflows.
+            This is the enhancement layer for the documentation experience. Sandbox
+            requests are sent through your backend proxy so credentials and request
+            handling stay under your control. The long-term goal is an AI-centric
+            panel for log analysis, payload review, NLP-based doc assistance, and
+            troubleshooting workflows.
           </p>
         </div>
 
-        <details class="credential-box" open>
+        <details class="credential-box">
           <summary class="preview-title">Sandbox credential vault</summary>
           <div class="credential-content">
             <div class="api-heading">
@@ -553,11 +397,28 @@
         </details>
 
         <div class="tabs" role="tablist" aria-label="Assistant tabs">
-          <button class="tab active" data-tab="chat" type="button">Chat</button>
+          <button class="tab active tab-ai" data-tab="chat" type="button">
+            <span class="tab-ai-badge" aria-hidden="true">AI</span>
+            <span>Chat</span>
+          </button>
           <button class="tab" data-tab="api" type="button">Try This API</button>
         </div>
 
         <section class="panel-view active" id="chatPanel">
+          <div class="ai-chat-badge" aria-label="AI chat assistant">
+            <span class="ai-chat-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <path
+                  d="M12 2l1.6 4.4L18 8l-4.4 1.6L12 14l-1.6-4.4L6 8l4.4-1.6L12 2zm7 9l.9 2.1L22 14l-2.1.9L19 17l-.9-2.1L16 14l2.1-.9L19 11zM7 13l1.2 2.8L11 17l-2.8 1.2L7 21l-1.2-2.8L3 17l2.8-1.2L7 13z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            <div>
+              <strong>AI Assistant Chat</strong>
+              <span>Future workspace for log analysis, payload review, and NLP guidance.</span>
+            </div>
+          </div>
           <div class="chat-feed" id="chatFeed"></div>
           <div class="quick-prompts" id="promptGrid"></div>
           <form class="chat-form" id="chatForm">
@@ -572,35 +433,46 @@
 
         <section class="panel-view" id="apiPanel">
           <div class="api-workspace">
-            <div class="api-controls">
-              <div class="api-heading">
-                <strong>Sandbox API explorer</strong>
-                <span>Switch between supported SSLCommerz API patterns. Sandbox only in this POC.</span>
-              </div>
+            <details class="preview-block api-controls-block" id="apiControlsBlock" open>
+              <summary class="preview-title">
+                <span>Sandbox API explorer</span>
+              </summary>
+              <div class="api-controls">
+                <div class="api-heading">
+                  <strong>Sandbox API explorer</strong>
+                  <span>Switch between supported SSLCommerz API patterns. Requests are sent through the Laravel backend proxy.</span>
+                </div>
 
-              <form class="api-form" id="apiForm">
-                <label>
-                  API Call
-                  <select id="apiSelector">
-                    <option value="initiate">Initiate Payment</option>
-                    <option value="validation">Order Validation</option>
-                    <option value="refund">Refund API</option>
-                    <option value="transactionQuery">Transaction Query</option>
-                  </select>
-                </label>
-                <div class="form-grid" id="apiFields"></div>
-                <button type="submit" class="submit-btn">Generate Sandbox Request</button>
-              </form>
-            </div>
+                <form class="api-form" id="apiForm">
+                  <label>
+                    API Call
+                    <select id="apiSelector">
+                      <option value="initiate">Initiate Payment</option>
+                      <option value="validation">Order Validation</option>
+                      <option value="refund">Refund API</option>
+                      <option value="transactionQuery">Transaction Query</option>
+                    </select>
+                  </label>
+                  <div class="form-grid" id="apiFields"></div>
+                  <button type="submit" class="submit-btn" id="apiSubmitBtn">
+                    <span class="btn-spinner" aria-hidden="true"></span>
+                    <span class="btn-label">Send Sandbox Request</span>
+                  </button>
+                </form>
+              </div>
+            </details>
 
             <div class="api-results">
               <details class="preview-block" id="curlBlock">
-                <summary class="preview-title">cURL preview</summary>
+                <summary class="preview-title">
+                  <span>cURL preview</span>
+                  <button type="button" class="preview-copy-btn" id="copyCurlBtn">Copy</button>
+                </summary>
                 <pre id="curlPreview"></pre>
               </details>
 
               <details class="preview-block" id="responseBlock" open>
-                <summary class="preview-title">Mocked sandbox response</summary>
+                <summary class="preview-title">API result</summary>
                 <pre id="responsePreview"></pre>
               </details>
             </div>
@@ -609,7 +481,7 @@
       </aside>
     </div>
     <script>
-      window.SSL_COPILOT_MOCK_API_BASE = "{{ url('/api/mock') }}";
+      window.SSL_COPILOT_API_BASE = "{{ url('/api/sslcommerz') }}";
     </script>
     <script src="{{ asset('copilot/app.js') }}"></script>
   </body>

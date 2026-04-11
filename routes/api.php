@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\MockSslCommerzController;
+use App\Http\Controllers\SslCommerzRequestController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/mock/{mode}', MockSslCommerzController::class);
+Route::post('/sslcommerz/{mode}', SslCommerzRequestController::class);

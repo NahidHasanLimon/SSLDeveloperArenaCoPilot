@@ -35,38 +35,11 @@ const knowledgeBase = [
   },
 ];
 
-const responseFields = [
-  ["status", "Overall request status indicator for the session creation call."],
-  ["sessionkey", "Session identifier returned by SSLCommerz for the initiated transaction."],
-  ["GatewayPageURL", "Primary redirect URL used to continue the payment flow."],
-  ["directPaymentURL", "Additional direct payment entry point when available."],
-  ["failedreason", "Reason string when the request cannot be processed successfully."],
-  ["gw", "Gateway list or gateway-related response data."],
-  ["redirectGatewayURL", "Redirect-oriented gateway URL reference returned in response payloads."],
-  ["storeBanner", "Merchant/store banner information returned by the gateway."],
-];
-
 const apiConfigs = {
   initiate: {
     title: "Initiate Payment",
     method: "POST",
     endpoint: "https://sandbox.sslcommerz.com/gwprocess/v4/api.php",
-    docTableId: "initiateParamTable",
-    docSummary:
-      "Creates a payment session and returns gateway data used to continue checkout.",
-    docParams: [
-      ["store_id", "Merchant sandbox or live store identifier."],
-      ["store_passwd", "Merchant store password used for authentication."],
-      ["total_amount", "Total payable amount for the transaction."],
-      ["currency", "Currency code, commonly BDT."],
-      ["tran_id", "Unique merchant transaction identifier."],
-      ["success_url", "Redirect target for successful payment."],
-      ["fail_url", "Redirect target for failed payment."],
-      ["cancel_url", "Redirect target for cancelled payment."],
-      ["cus_name", "Customer full name."],
-      ["cus_email", "Customer email address."],
-      ["cus_phone", "Customer mobile or phone number."],
-    ],
     groups: [
       {
         title: "Authentication and transaction",
@@ -172,16 +145,6 @@ const apiConfigs = {
     title: "Order Validation",
     method: "GET",
     endpoint: "https://sandbox.sslcommerz.com/validator/api/validationserverAPI.php",
-    docTableId: "validationParamTable",
-    docSummary:
-      "Validates a payment after redirect or IPN before order fulfillment.",
-    docParams: [
-      ["store_id", "Merchant store identifier."],
-      ["store_passwd", "Merchant authentication secret."],
-      ["val_id", "Validation id received from payment response or IPN."],
-      ["format", "Preferred response format such as json."],
-      ["v", "Version parameter when needed by the validator endpoint."],
-    ],
     groups: [
       {
         title: "Authentication",
@@ -204,18 +167,6 @@ const apiConfigs = {
     title: "Refund API",
     method: "GET",
     endpoint: "https://sandbox.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php",
-    docTableId: "refundParamTable",
-    docSummary:
-      "Initiates or tracks refund activity using original transaction references and refund metadata.",
-    docParams: [
-      ["store_id", "Merchant store identifier."],
-      ["store_passwd", "Merchant authentication secret."],
-      ["bank_tran_id", "Original bank transaction id."],
-      ["refund_amount", "Requested refund amount."],
-      ["refund_remarks", "Reason or remark for refund."],
-      ["refund_ref_id", "Merchant-side refund tracking reference."],
-      ["format", "Preferred response format such as json."],
-    ],
     groups: [
       {
         title: "Authentication",
@@ -228,9 +179,10 @@ const apiConfigs = {
         title: "Refund request",
         fields: [
           ["bankTranId", "Bank Transaction ID", "text", "1709162345070ANJdZV8LyI4cMw", "Original bank transaction id.", true],
+          ["refundTransId", "Refund Transaction ID", "text", "TRID0000000001", "Unique refund transaction id.", true],
           ["refundAmount", "Refund Amount", "text", "5.50", "Refund amount.", true],
           ["refundRemarks", "Refund Remarks", "text", "Out of Stock", "Reason for refund.", true],
-          ["refundRefId", "Refund Reference ID", "text", "REFUND-001", "Merchant-side refund reference.", true],
+          ["refundRefeId", "Reference ID", "text", "ORDER-REF-001", "Optional system reconciliation reference.", false],
           ["refundFormat", "Format", "text", "json", "json or xml.", false],
         ],
       },
@@ -240,17 +192,6 @@ const apiConfigs = {
     title: "Transaction Query",
     method: "GET",
     endpoint: "https://sandbox.sslcommerz.com/validator/api/merchantTransIDvalidationAPI.php",
-    docTableId: "queryParamTable",
-    docSummary:
-      "Fetches transaction or session-oriented payment state later for re-checking or support flows.",
-    docParams: [
-      ["store_id", "Merchant store identifier."],
-      ["store_passwd", "Merchant authentication secret."],
-      ["tran_id", "Merchant transaction id when querying by order reference."],
-      ["sessionkey", "Session key when querying by saved session."],
-      ["query_type", "Selector describing the lookup mode."],
-      ["format", "Preferred response format such as json."],
-    ],
     groups: [
       {
         title: "Authentication",
@@ -262,15 +203,325 @@ const apiConfigs = {
       {
         title: "Query request",
         fields: [
-          ["queryTranId", "Transaction ID", "text", "INV-10001", "Merchant transaction id to query.", false],
-          ["querySessionKey", "Session Key", "text", "", "Optional saved session key for lookup.", false],
-          ["queryType", "Query Type", "text", "by_tran_id", "Example: by_tran_id or by_sessionkey.", true],
+          ["queryTranId", "Transaction ID", "text", "INV-10001", "Use this for query by transaction id.", false],
+          ["querySessionKey", "Session Key", "text", "", "Use this for query by session id.", false],
           ["queryFormat", "Format", "text", "json", "json or xml.", false],
         ],
       },
     ],
   },
 };
+
+const documentationTables = [
+  {
+    targetId: "initiateRequestParamTable",
+    summary:
+      "Official request parameters for `POST /gwprocess/v4/api.php`, grouped to match the SSLCommerz v4 documentation.",
+    sections: [
+      {
+        title: "Integration Required Parameters",
+        rows: [
+          ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+          ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+          ["total_amount", "decimal (10,2)", "Mandatory - The amount which will process by SSLCOMMERZ. It shall be decimal value (10,2). Example : 55.40. The transaction amount must be from 10.00 BDT to 500000.00 BDT"],
+          ["currency", "string (3)", "Mandatory - The currency type must be mentioned. It shall be three characters. Example : BDT, USD, EUR, SGD, INR, MYR, etc. If the transaction currency is not BDT, then it will be converted to BDT based on the current convert rate."],
+          ["tran_id", "string (30)", "Mandatory - Unique transaction ID to identify your order in both your end and SSLCOMMERZ"],
+          ["product_category", "string (50)", "Mandatory - Mention the product category. It is a open field. Example - clothing, shoes, watches, gift, healthcare, jewellery, top up, toys, baby care, pants, laptop, donation, etc"],
+          ["success_url", "string (255)", "Mandatory - It is the callback URL of your website where user will redirect after successful payment"],
+          ["fail_url", "string (255)", "Mandatory - It is the callback URL of your website where user will redirect after any failure occure during payment"],
+          ["cancel_url", "string (255)", "Mandatory - It is the callback URL of your website where user will redirect if user canceled the transaction"],
+          ["ipn_url", "string (255)", "Important! Not mandatory, however better to use to avoid missing any payment notification - It is the Instant Payment Notification (IPN) URL of your website where SSLCOMMERZ will send the transaction's status"],
+          ["multi_card_name", "string (30)", "Do not Use! If you do not customize the gateway list - You can control to display the gateway list at SSLCOMMERZ gateway selection page by providing this parameters."],
+          ["allowed_bin", "string (255)", "Do not Use! If you do not control on transaction - You can provide the BIN of card to allow the transaction must be completed by this BIN. You can declare by coma ',' separate of these BIN."],
+        ],
+      },
+      {
+        title: "Customer Information",
+        rows: [
+          ["cus_name", "string (50)", "Mandatory - Your customer name to address the customer in payment receipt email"],
+          ["cus_email", "string (50)", "Mandatory - Valid email address of your customer to send payment receipt from SSLCOMMERZ end"],
+          ["cus_add1", "string (50)", "Mandatory - Address of your customer. Not mandatory but useful if provided"],
+          ["cus_add2", "string (50)", "Address line 2 of your customer. Not mandatory but useful if provided"],
+          ["cus_city", "string (50)", "Mandatory - City of your customer. Not mandatory but useful if provided"],
+          ["cus_state", "string (50)", "State of your customer. Not mandatory but useful if provided"],
+          ["cus_postcode", "string (30)", "Mandatory - Postcode of your customer. Not mandatory but useful if provided"],
+          ["cus_country", "string (50)", "Mandatory - Country of your customer. Not mandatory but useful if provided"],
+          ["cus_phone", "string (20)", "Mandatory - The phone/mobile number of your customer to contact if any issue arises"],
+          ["cus_fax", "string (20)", "Fax number of your customer. Not mandatory but useful if provided"],
+        ],
+      },
+      {
+        title: "Shipment Information",
+        rows: [
+          ["shipping_method", "string (50)", "Mandatory - Shipping method of the order. Example: YES or NO or Courier or SSLCOMMERZ_LOGISTIC."],
+          ["num_of_item", "integer (1)", "Mandatory - No of product will be shipped. Example: 1 or 2 or etc"],
+          ["weight_of_items", "decimal (10,2)", "Mandatory - Weight of products will be shipped. Example: 0.5 or 2.00 or etc in kg"],
+          ["logistic_pickup_id", "string (50)", "Mandatory - This is a id from where the SSLCOMMERZ logistic partners will come to receive your product for shipment. You will set and get this pickup information from your merchant portal provided by SSLCOMMERZ."],
+          ["logistic_delivery_type", "string (50)", "Mandatory - This information is required by SSLCOMMERZ logistic partners before receiving your product for shipment."],
+          ["ship_name", "string (50)", "Mandatory, if shipping_method is YES - Shipping Address of your order. Not mandatory but useful if provided"],
+          ["ship_add1", "string (50)", "Mandatory, if shipping_method is YES - Additional Shipping Address of your order. Not mandatory but useful if provided"],
+          ["ship_add2", "string (50)", "Additional Shipping Address of your order. Not mandatory but useful if provided"],
+          ["ship_area", "string (50)", "Mandatory, if shipping_method is YES - Shipping area of your order. Not mandatory but useful if provided"],
+          ["ship_city", "string (50)", "Mandatory, if shipping_method is YES - Shipping city of your order. Not mandatory but useful if provided"],
+          ["ship_sub_city", "string (50)", "Mandatory, if shipping_method is YES - Shipping sub city or sub-district or thana of your order. Not mandatory but useful if provided"],
+          ["ship_state", "string (50)", "Shipping state of your order. Not mandatory but useful if provided"],
+          ["ship_postcode", "string (50)", "Mandatory, if shipping_method is YES - Shipping postcode of your order. Not mandatory but useful if provided"],
+          ["ship_country", "string (50)", "Mandatory, if shipping_method is YES - Shipping country of your order. Not mandatory but useful if provided"],
+        ],
+      },
+      {
+        title: "Product Information",
+        rows: [
+          ["product_name", "string (255)", "Mandatory - Mention the product name briefly. Mention the product name by coma separate. Example: Computer,Speaker"],
+          ["product_category", "string (100)", "Mandatory - Mention the product category. Example: Electronic or topup or bus ticket or air ticket"],
+          ["product_profile", "string (100)", "Mandatory - Mention goods vertical. It is very much necessary for online transactions to avoid chargeback. Use one of: general, physical-goods, non-physical-goods, airline-tickets, travel-vertical, telecom-vertical"],
+          ["hours_till_departure", "string (30)", "Mandatory, if product_profile is airline-tickets - Provide the remaining time of departure of flight till at the time of purchasing the ticket."],
+          ["flight_type", "string (30)", "Mandatory, if product_profile is airline-tickets - Provide the flight type. Example: Oneway or Return or Multistop"],
+          ["pnr", "string (50)", "Mandatory, if product_profile is airline-tickets - Provide the PNR."],
+          ["journey_from_to", "string (255)", "Mandatory, if product_profile is airline-tickets - Provide the journey route. Example: DAC-CGP or DAC-CGP CGP-DAC"],
+          ["third_party_booking", "string (20)", "Mandatory, if product_profile is airline-tickets - No/Yes. Whether the ticket has been taken from third party booking system."],
+          ["hotel_name", "string (255)", "Mandatory, if product_profile is travel-vertical - Please provide the hotel name. Example: Sheraton"],
+          ["length_of_stay", "string (30)", "Mandatory, if product_profile is travel-vertical - How long stay in hotel. Example: 2 days"],
+          ["check_in_time", "string (30)", "Mandatory, if product_profile is travel-vertical - Checking hours for the hotel room. Example: 24 hrs"],
+          ["hotel_city", "string (50)", "Mandatory, if product_profile is travel-vertical - Location of the hotel. Example: Dhaka"],
+          ["product_type", "string (30)", "Mandatory, if product_profile is telecom-vertical - For mobile or any recharge, this information is necessary. Example: Prepaid or Postpaid"],
+          ["topup_number", "string (150)", "Mandatory, if product_profile is telecom-vertical - Provide the mobile number which will be recharged."],
+          ["country_topup", "string (30)", "Mandatory, if product_profile is telecom-vertical - Provide the country name in where the service is given. Example: Bangladesh"],
+          ["cart", "json", "JSON data with two elements. product : Max 255 characters, quantity : Quantity in numeric value and amount : Decimal (12,2)"],
+          ["product_amount", "decimal (10,2)", "Product price which will be displayed in your merchant panel and will help you to reconcile the transaction."],
+          ["vat", "decimal (10,2)", "The VAT included on the product price which will be displayed in your merchant panel and will help you to reconcile the transaction."],
+          ["discount_amount", "decimal (10,2)", "Discount given on the invoice which will be displayed in your merchant panel and will help you to reconcile the transaction."],
+          ["convenience_fee", "decimal (10,2)", "Any convenience fee imposed on the invoice which will be displayed in your merchant panel and will help you to reconcile the transaction."],
+        ],
+      },
+      {
+        title: "Customized or Additional Parameters",
+        rows: [
+          ["value_a", "string (255)", "Extra parameter to pass your meta data if it is needed. Not mandatory"],
+          ["value_b", "string (255)", "Extra parameter to pass your meta data if it is needed. Not mandatory"],
+          ["value_c", "string (255)", "Extra parameter to pass your meta data if it is needed. Not mandatory"],
+          ["value_d", "string (255)", "Extra parameter to pass your meta data if it is needed. Not mandatory"],
+        ],
+      },
+    ],
+  },
+  {
+    targetId: "initiateReturnedParamTable",
+    summary:
+      "Official returned parameters from the initiate payment response.",
+    rows: [
+      ["status", "string (10)", "API connectivity status. If all the required data is provided, then it will return as SUCCESS, neither it will be FAILED"],
+      ["failedreason", "string (255)", "If API connectivity is failed then it returns the reason."],
+      ["sessionkey", "string (50)", "A unique session key which must be saved at your system to query the transaction status any time (if required)."],
+      ["gw", "string", "It will list all active gateways. If you add this key with the parameter of redirectGatewayURL, then it will be redirected to that gateway directly."],
+      ["GatewayPageURL", "string (255)", "The URL to where you will redirect the customer to pay. This is the main URL which you will use for the integration."],
+      ["storeBanner", "string (255)", "It will return the image URL if any banner is uploaded against the store."],
+      ["storeLogo", "string (255)", "It will return the image URL if any logo is uploaded against the store."],
+      ["desc", "string", "All gateways' brief description. If you want to know about the individual gateway key, then this parameter will help you."],
+    ],
+  },
+  {
+    targetId: "initiateEmiParamTable",
+    summary:
+      "Official EMI fields from the initiate payment documentation.",
+    rows: [
+      ["emi_option", "integer (1)", "Mandatory - This is mandatory if transaction is EMI enabled and Value must be 1/0. Here, 1 means customer will get EMI facility for this transaction"],
+      ["emi_max_inst_option", "integer (2)", "Max instalment Option, Here customer will get 3,6, 9 instalment at gateway page"],
+      ["emi_selected_inst", "integer (2)", "Customer has selected from your Site, So no instalment option will be displayed at gateway page"],
+      ["emi_allow_only", "integer (1)", "Value is 1/0, if value is 1 then only EMI transaction is possible, in payment page. No Mobile banking and internet banking channel will not display. This parameter depends on `emi_option` and `emi_selected_inst`"],
+    ],
+  },
+  {
+    targetId: "validationRequestParamTable",
+    summary:
+      "Official request parameters for the order validation API.",
+    rows: [
+      ["val_id", "string (50)", "Mandatory - A Validation ID against the successful transaction which is provided by SSLCOMMERZ."],
+      ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+      ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+      ["format", "string (10)", "Predefined value is json or xml. This parameter is used to get the response in two different format such as json or xml. By default it returns json format."],
+      ["v", "integer (1)", "Open for future use only."],
+    ],
+  },
+  {
+    targetId: "validationReturnedParamTable",
+    summary:
+      "Returned fields from order validation used to confirm the payment before fulfillment.",
+    rows: [
+      ["status", "string (20)", "Transaction Status. This parameter needs to be checked before update your database as a successful transaction. VALID, VALIDATED, PENDING, FAILED"],
+      ["tran_date", "datetime", "Transaction date - Payment completion date as 2016-05-08 15:53:49 ( PHP date('Y-m-d H:i:s') )"],
+      ["tran_id", "string (30)", "Transaction ID (Unique) that was sent by you during initiation. This parameter needs to be validated with your system database for security"],
+      ["val_id", "string (50)", "A Validation ID against the Transaction which is provided by SSLCOMMERZ."],
+      ["amount", "decimal (10,2)", "The total amount sent by you. However, it could be changed based on currency type. This parameter needs to be validated with your system database for security"],
+      ["store_amount", "decimal (10,2)", "The amount what you will get in your account after bank charge"],
+      ["bank_tran_id", "string (80)", "The transaction ID at Banks End"],
+      ["card_type", "string (50)", "The Bank Gateway Name that customer selected"],
+      ["card_no", "string (80)", "Customer’s Card number. However, for Mobile Banking and Internet Banking, it will return customer's reference id."],
+      ["card_issuer", "string (50)", "Issuer Bank Name"],
+      ["card_brand", "string (30)", "VISA, MASTER, AMEX, IB or MOBILE BANKING"],
+      ["card_issuer_country", "string (50)", "Country of Card Issuer Bank"],
+      ["card_issuer_country_code", "string (2)", "2 digits short code of Country of Card Issuer Bank"],
+      ["currency_type", "string (3)", "The currency you have sent during initiation of this transaction."],
+      ["currency_amount", "decimal (10,2)", "The currency amount you have sent during initiation of this transaction."],
+      ["currency_rate", "decimal", "Currency conversion rate applied when the transaction currency is different from BDT."],
+      ["base_fair", "decimal", "Base fair value returned by the API response example."],
+      ["value_a", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_b", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_c", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_d", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["risk_level", "integer (1)", "Transaction's Risk Level - High (1) for most risky transactions and Low (0) for safe transactions."],
+      ["risk_title", "string (50)", "Transaction's Risk Level Description"],
+      ["APIConnect", "string (30)", "API Connection Status - INVALID_REQUEST, FAILED, INACTIVE, DONE"],
+      ["validated_on", "datetime", "Date and time when the validation is confirmed by the API."],
+      ["gw_version", "string", "Gateway version returned by the validation response."],
+    ],
+  },
+  {
+    targetId: "refundRequestParamTable",
+    summary:
+      "Official request parameters for initiating a refund.",
+    rows: [
+      ["bank_tran_id", "string (80)", "Mandatory - The transaction ID at Banks End"],
+      ["refund_trans_id", "string (30)", "Mandatory - Generate a unique transaction ID for the refund to identify your order on both your end and SSLCOMMERZ. Note: this is a new parameter introduced on 24/02/2025"],
+      ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+      ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+      ["refund_amount", "decimal (10,2)", "Mandatory - The amount will be refunded to card holder's account."],
+      ["refund_remarks", "string (255)", "Mandatory - The reason of refund."],
+      ["refe_id", "string (50)", "You can provide any reference number of your system to reconcile."],
+      ["format", "string (10)", "Predefined value is json or xml. This parameter is used to get the response in two different format such as json or xml. By default it returns json format."],
+    ],
+  },
+  {
+    targetId: "refundReturnedParamTable",
+    summary:
+      "Official returned parameters for refund initiation.",
+    rows: [
+      ["APIConnect", "string (30)", "API Connection Status - INVALID_REQUEST, FAILED, INACTIVE, DONE"],
+      ["bank_tran_id", "string (80)", "The transaction ID at Banks End"],
+      ["trans_id", "string (30)", "Will be return only when the Authentication is success and the bank_tran_id is a valid id"],
+      ["refund_ref_id", "string (50)", "This parameter will be returned only when the request successfully initiates"],
+      ["status", "string (30)", "Will be returned only when the authentication is success and the value will be as below: success, failed, processing"],
+      ["errorReason", "string (255)", "Failure reason to initiate the refund request"],
+    ],
+  },
+  {
+    targetId: "refundQueryParamTable",
+    summary:
+      "Official request parameters for querying refund status.",
+    rows: [
+      ["refund_ref_id", "string (50)", "Mandatory - This parameter will be returned only when the request successfully initiates"],
+      ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+      ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+    ],
+  },
+  {
+    targetId: "refundQueryReturnedParamTable",
+    summary:
+      "Official returned parameters for refund status query.",
+    rows: [
+      ["APIConnect", "string (30)", "API Connection Status - INVALID_REQUEST, FAILED, INACTIVE, DONE"],
+      ["bank_tran_id", "string (80)", "The transaction ID at Banks End"],
+      ["tran_id", "string (30)", "Will be return only when the Authentication is success and the bank_tran_id is a valid id"],
+      ["refund_ref_id", "string (50)", "This parameter will be returned only when the request successfully initiates"],
+      ["initiated_on", "datetime", "Date and time when the refund request has been initiated"],
+      ["refunded_on", "datetime", "Date and time when the refund request has been proceeded all the processes."],
+      ["status", "string (30)", "Will be return only when the Authentication is success and the value will be as below: refunded, processing, cancelled"],
+      ["errorReason", "string (255)", "Failure reason to query the refund request"],
+    ],
+  },
+  {
+    targetId: "querySessionRequestParamTable",
+    summary:
+      "Official request parameters for transaction query by session ID.",
+    rows: [
+      ["sessionkey", "string (50)", "Mandatory - The session id has been generated at the time of transaction initiated."],
+      ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+      ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+    ],
+  },
+  {
+    targetId: "querySessionReturnedParamTable",
+    summary:
+      "Official returned parameters for transaction query by session ID.",
+    rows: [
+      ["APIConnect", "string (30)", "API Connection Status - INVALID_REQUEST, FAILED, INACTIVE, DONE"],
+      ["status", "string (20)", "Transaction Status. VALID, VALIDATED, PENDING, FAILED"],
+      ["sessionkey", "string (50)", "The session id has been generated at the time of transaction initiated."],
+      ["tran_date", "datetime", "Transaction date - Payment completion date as 2016-05-08 15:53:49 ( PHP date('Y-m-d H:i:s') )"],
+      ["tran_id", "string (30)", "Transaction ID (Unique) that was sent by you during initiation. This parameter needs to be validated with your system database for security"],
+      ["val_id", "string (50)", "A Validation ID against the Transaction which is provided by SSLCOMMERZ."],
+      ["amount", "decimal (10,2)", "The total amount sent by you. However, it could be changed based on currency type."],
+      ["store_amount", "decimal (10,2)", "The amount what you will get in your account after bank charge"],
+      ["card_type", "string (50)", "The Bank Gateway Name that customer selected"],
+      ["card_no", "string (80)", "Customer’s Card number. However, for Mobile Banking and Internet Banking, it will return customer's reference id."],
+      ["currency", "string (3)", "Currency Type which will be settled with your merchant account after deducting the Gateway charges."],
+      ["bank_tran_id", "string (80)", "The transaction ID at Banks End"],
+      ["card_issuer", "string (50)", "Issuer Bank Name"],
+      ["card_brand", "string (30)", "VISA, MASTER, AMEX, IB or MOBILE BANKING"],
+      ["card_issuer_country", "string (50)", "Country of Card Issuer Bank"],
+      ["card_issuer_country_code", "string (2)", "2 digits short code of Country of Card Issuer Bank"],
+      ["currency_type", "string (3)", "The currency you have sent during initiation of this transaction."],
+      ["currency_amount", "decimal (10,2)", "The currency amount you have sent during initiation of this transaction."],
+      ["emi_instalment", "integer (2)", "Tenure of the EMI transaction which is choosen by the customer."],
+      ["emi_amount", "decimal (10,2)", "EMI charge which will be paid to the Issuer Bank"],
+      ["discount_percentage", "decimal (10,2)", "If customer gets any discount based on the campaign is managed by both you and SSLCOMMERZ."],
+      ["discount_remarks", "string (255)", "Short description of the campaign which is managed by both you and SSLCOMMERZ."],
+      ["value_a", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_b", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_c", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["value_d", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["risk_level", "integer (1)", "Transaction's Risk Level - High (1) for most risky transactions and Low (0) for safe transactions."],
+      ["risk_title", "string (50)", "Transaction's Risk Level Decription"],
+    ],
+  },
+  {
+    targetId: "queryTranRequestParamTable",
+    summary:
+      "Official request parameters for transaction query by merchant transaction ID.",
+    rows: [
+      ["tran_id", "string (50)", "Mandatory - Transaction ID (Unique) that was sent by you during initiation."],
+      ["store_id", "string (30)", "Mandatory - Your SSLCOMMERZ Store ID is the integration credential which can be collected through our managers"],
+      ["store_passwd", "string (30)", "Mandatory - Your SSLCOMMERZ Store Password is the integration credential which can be collected through our managers"],
+    ],
+  },
+  {
+    targetId: "queryTranReturnedParamTable",
+    summary:
+      "Official returned parameters for transaction query by transaction ID.",
+    rows: [
+      ["APIConnect", "string (30)", "API Connection Status - INVALID_REQUEST, FAILED, INACTIVE, DONE"],
+      ["no_of_trans_found", "integer (2)", "No of transaction is found against the transaction id."],
+      ["element", "json", "Details of individual transactions."],
+      ["element.[].status", "string (20)", "Transaction Status. VALID, VALIDATED, PENDING, FAILED"],
+      ["element.[].tran_date", "datetime", "Transaction date - Payment completion date as 2016-05-08 15:53:49 ( PHP date('Y-m-d H:i:s') )"],
+      ["element.[].tran_id", "string (30)", "Transaction ID (Unique) that was sent by you during initiation. This parameter needs to be validated with your system database for security"],
+      ["element.[].val_id", "string (50)", "A Validation ID against the Transaction which is provided by SSLCOMMERZ."],
+      ["element.[].amount", "decimal (10,2)", "The total amount sent by you. However, it could be changed based on currency type."],
+      ["element.[].store_amount", "decimal (10,2)", "The amount what you will get in your account after bank charge"],
+      ["element.[].card_type", "string (50)", "The Bank Gateway Name that customer selected"],
+      ["element.[].card_no", "string (80)", "Customer’s Card number. However, for Mobile Banking and Internet Banking, it will return customer's reference id."],
+      ["element.[].currency", "string (3)", "Currency Type which will be settled with your merchant account after deducting the Gateway charges."],
+      ["element.[].bank_tran_id", "string (80)", "The transaction ID at Banks End"],
+      ["element.[].card_issuer", "string (50)", "Issuer Bank Name"],
+      ["element.[].card_brand", "string (30)", "VISA, MASTER, AMEX, IB or MOBILE BANKING"],
+      ["element.[].card_issuer_country", "string (50)", "Country of Card Issuer Bank"],
+      ["element.[].card_issuer_country_code", "string (2)", "2 digits short code of Country of Card Issuer Bank"],
+      ["element.[].currency_type", "string (3)", "The currency you have sent during initiation of this transaction."],
+      ["element.[].currency_amount", "decimal (10,2)", "The currency amount you have sent during initiation of this transaction."],
+      ["element.[].emi_instalment", "integer (2)", "Tenure of the EMI transaction which is choosen by the customer."],
+      ["element.[].emi_amount", "decimal (10,2)", "EMI charge which will be paid to the Issuer Bank"],
+      ["element.[].discount_percentage", "decimal (10,2)", "If customer gets any discount based on the campaign is managed by both you and SSLCOMMERZ."],
+      ["element.[].discount_remarks", "string (255)", "Short description of the campaign which is managed by both you and SSLCOMMERZ."],
+      ["element.[].value_a", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["element.[].value_b", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["element.[].value_c", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["element.[].value_d", "string (255)", "Same Value will be returned as Passed during initiation"],
+      ["element.[].risk_level", "integer (1)", "Transaction's Risk Level - High (1) for most risky transactions and Low (0) for safe transactions."],
+      ["element.[].risk_title", "string (50)", "Transaction's Risk Level Description"],
+      ["element.[].error", "string (255)", "Transaction failed reason (if any)!"],
+    ],
+  },
+];
 
 const payloadKeyMaps = {
   initiate: {
@@ -349,9 +600,10 @@ const payloadKeyMaps = {
     storeId: "store_id",
     storePassword: "store_passwd",
     bankTranId: "bank_tran_id",
+    refundTransId: "refund_trans_id",
     refundAmount: "refund_amount",
     refundRemarks: "refund_remarks",
-    refundRefId: "refund_ref_id",
+    refundRefeId: "refe_id",
     refundFormat: "format",
   },
   transactionQuery: {
@@ -359,7 +611,6 @@ const payloadKeyMaps = {
     storePassword: "store_passwd",
     queryTranId: "tran_id",
     querySessionKey: "sessionkey",
-    queryType: "query_type",
     queryFormat: "format",
   },
 };
@@ -372,8 +623,9 @@ const apiForm = document.getElementById("apiForm");
 const apiFields = document.getElementById("apiFields");
 const curlPreview = document.getElementById("curlPreview");
 const responsePreview = document.getElementById("responsePreview");
-const returnedParamsTable = document.getElementById("returnedParamsTable");
 const apiSelector = document.getElementById("apiSelector");
+const apiSubmitBtn = document.getElementById("apiSubmitBtn");
+const copyCurlBtn = document.getElementById("copyCurlBtn");
 const credentialForm = document.getElementById("credentialForm");
 const savedStoreId = document.getElementById("savedStoreId");
 const savedStorePassword = document.getElementById("savedStorePassword");
@@ -382,6 +634,10 @@ const docLinks = document.querySelectorAll(".doc-link");
 const apiTryButtons = document.querySelectorAll("[data-api-target]");
 const panelFullscreenBtn = document.getElementById("panelFullscreenBtn");
 const panelCloseBtn = document.getElementById("panelCloseBtn");
+const responseBlock = document.getElementById("responseBlock");
+
+let requestInFlight = false;
+let copyCurlResetTimer;
 
 function addMessage(role, text) {
   const node = document.createElement("div");
@@ -417,33 +673,47 @@ function buildPromptCards() {
   });
 }
 
-function buildReturnedParamsTable() {
-  responseFields.forEach(([name, description]) => {
+function appendDocTableHeader(target) {
+  const row = document.createElement("div");
+  row.className = "row row-head";
+  row.innerHTML = "<span>Param Name</span><span>Data Type</span><span>Description</span>";
+  target.appendChild(row);
+}
+
+function appendDocRows(target, rows) {
+  rows.forEach(([name, type, description]) => {
     const row = document.createElement("div");
-    row.className = "row";
-    row.innerHTML = `<span><code>${name}</code></span><span>${description}</span>`;
-    returnedParamsTable.appendChild(row);
+    row.className = "row row-three";
+    row.innerHTML = `<span><code>${name}</code></span><span>${type}</span><span>${description}</span>`;
+    target.appendChild(row);
   });
 }
 
-function buildDocParamTables() {
-  Object.values(apiConfigs).forEach((config) => {
-    const target = document.getElementById(config.docTableId);
+function buildDocumentationTables() {
+  documentationTables.forEach((table) => {
+    const target = document.getElementById(table.targetId);
     if (!target) return;
 
     target.innerHTML = "";
 
     const summary = document.createElement("div");
     summary.className = "api-brief";
-    summary.textContent = config.docSummary;
+    summary.textContent = table.summary;
     target.appendChild(summary);
+    appendDocTableHeader(target);
 
-    config.docParams.forEach(([name, description]) => {
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `<span><code>${name}</code></span><span>${description}</span>`;
-      target.appendChild(row);
-    });
+    if (table.sections) {
+      table.sections.forEach((section) => {
+        const group = document.createElement("div");
+        group.className = "table-section-label";
+        group.textContent = section.title;
+        target.appendChild(group);
+        appendDocRows(target, section.rows);
+      });
+      return;
+    }
+
+    appendDocRows(target, table.rows);
   });
 }
 
@@ -556,90 +826,60 @@ function buildCurl(configKey, payload) {
   return [`curl -X ${config.method} "${config.endpoint}" \\`, ...lines].join(" \\\n");
 }
 
-function buildResponse(configKey, payload) {
-  const base = {
-    request_type: configKey,
-    sandbox: true,
-    note: "Mocked sandbox response only. No real SSLCommerz request sent.",
-  };
-
-  if (configKey === "initiate") {
-    return JSON.stringify(
-      {
-        ...base,
-        status: "SUCCESS",
-        failedreason: "",
-        sessionkey: `sandbox_mock_${Math.random().toString(36).slice(2, 10)}`,
-        GatewayPageURL: `https://sandbox.sslcommerz.com/gwprocess/v4/mock/${payload.tran_id || "session"}`,
-        redirectGatewayURL: `https://sandbox.sslcommerz.com/gwprocess/v4/mock/${payload.tran_id || "session"}`,
-        directPaymentURL: `https://sandbox.sslcommerz.com/gwprocess/v4/mock/direct/${payload.tran_id || "session"}`,
-        gw: "visa,master,bkash,nagad,internetbank",
-        tran_id: payload.tran_id || "",
-        amount: payload.total_amount || "",
-        currency: payload.currency || "BDT",
-      },
-      null,
-      2
-    );
+function setSubmitState(isLoading) {
+  requestInFlight = isLoading;
+  apiSubmitBtn.disabled = isLoading;
+  apiSubmitBtn.classList.toggle("is-loading", isLoading);
+  const label = apiSubmitBtn.querySelector(".btn-label");
+  if (label) {
+    label.textContent = isLoading ? "Sending..." : "Send Sandbox Request";
   }
-
-  if (configKey === "validation") {
-    return JSON.stringify(
-      {
-        ...base,
-        status: "VALID",
-        APIConnect: "DONE",
-        validated_on: new Date().toISOString(),
-        val_id: payload.val_id || "",
-        amount: "1200.00",
-        currency_type: "BDT",
-        risk_level: "0",
-        risk_title: "Safe",
-      },
-      null,
-      2
-    );
-  }
-
-  if (configKey === "refund") {
-    return JSON.stringify(
-      {
-        ...base,
-        APIConnect: "DONE",
-        bank_tran_id: payload.bank_tran_id || "",
-        refund_ref_id: payload.refund_ref_id || "",
-        refund_amount: payload.refund_amount || "",
-        status: "Processing",
-      },
-      null,
-      2
-    );
-  }
-
-  return JSON.stringify(
-    {
-      ...base,
-      APIConnect: "DONE",
-      status: "VALIDATED",
-      tran_id: payload.tran_id || "",
-      sessionkey: payload.sessionkey || "",
-      amount: "1200.00",
-      currency_amount: "1200.00",
-      currency_type: "BDT",
-    },
-    null,
-    2
-  );
 }
 
-async function renderApiPreview() {
+function renderApiPreview() {
   const configKey = apiSelector.value;
   const payload = buildPayload(configKey);
   curlPreview.textContent = buildCurl(configKey, payload);
-  responsePreview.textContent = "Loading mocked sandbox response...";
+  return { configKey, payload };
+}
+
+async function copyCurlPreview(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const curlText = curlPreview.textContent.trim();
+  if (!curlText) {
+    return;
+  }
 
   try {
-    const response = await fetch(`${window.SSL_COPILOT_MOCK_API_BASE}/${configKey}`, {
+    await navigator.clipboard.writeText(curlText);
+    copyCurlBtn.textContent = "Copied";
+    copyCurlBtn.classList.add("copied");
+  } catch {
+    copyCurlBtn.textContent = "Failed";
+    copyCurlBtn.classList.add("copied");
+  }
+
+  window.clearTimeout(copyCurlResetTimer);
+  copyCurlResetTimer = window.setTimeout(() => {
+    copyCurlBtn.textContent = "Copy";
+    copyCurlBtn.classList.remove("copied");
+  }, 1400);
+}
+
+async function sendRealApiRequest() {
+  if (requestInFlight) {
+    return;
+  }
+
+  const { configKey, payload } = renderApiPreview();
+  responseBlock.open = true;
+  responsePreview.textContent = "Sending request to SSLCommerz sandbox...";
+  setSubmitState(true);
+
+  try {
+    const response = await fetch(`${window.SSL_COPILOT_API_BASE}/${configKey}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -648,14 +888,31 @@ async function renderApiPreview() {
       body: JSON.stringify({ payload }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      throw new Error(`Mock API request failed with status ${response.status}`);
+      throw new Error(data?.message || `Sandbox request failed with status ${response.status}`);
     }
 
-    const data = await response.json();
-    responsePreview.textContent = JSON.stringify(data, null, 2);
+    responsePreview.textContent = JSON.stringify(
+      data?.result ?? {
+        message: "No upstream SSLCommerz result body was returned.",
+      },
+      null,
+      2
+    );
   } catch (error) {
-    responsePreview.textContent = `${buildResponse(configKey, payload)}\n\nFallback reason: ${error.message}`;
+    responsePreview.textContent = JSON.stringify(
+      {
+        status: "BACKEND_PROXY_ERROR",
+        message: "Unable to complete the SSLCommerz request through the backend proxy.",
+        error: error.message,
+      },
+      null,
+      2
+    );
+  } finally {
+    setSubmitState(false);
   }
 }
 
@@ -667,7 +924,9 @@ function setActiveDocLink(id) {
 }
 
 function setupScrollSpy() {
-  const sections = Array.from(document.querySelectorAll("main section[id], aside[id]"));
+  const sections = Array.from(
+    document.querySelectorAll("main section[id], main .sub-anchor-block[id], aside[id]")
+  );
   const observer = new IntersectionObserver(
     (entries) => {
       const visible = entries
@@ -771,6 +1030,9 @@ clearCreds.addEventListener("click", () => {
 });
 
 apiSelector.addEventListener("change", () => {
+  if (requestInFlight) {
+    return;
+  }
   buildApiFields(apiSelector.value);
   renderApiPreview();
 });
@@ -785,19 +1047,21 @@ panelCloseBtn.addEventListener("click", () => {
   }
 });
 
+copyCurlBtn.addEventListener("click", copyCurlPreview);
+
 apiForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  renderApiPreview();
+  sendRealApiRequest();
 });
 
 buildPromptCards();
-buildReturnedParamsTable();
-buildDocParamTables();
+buildDocumentationTables();
 hydrateCredentialForm();
 buildApiFields(apiSelector.value);
 setupScrollSpy();
 addMessage(
   "assistant",
-  "This panel is being shaped toward an AI-centric workflow for payload analysis, log inspection, NLP assistance, and guided API troubleshooting. In the current phase it remains a sandbox-only mock so the interface and interaction flow can be refined first."
+  "This panel is being shaped toward an AI-centric workflow for payload analysis, log inspection, NLP assistance, and guided API troubleshooting. Sandbox API calls are now sent through the Laravel backend proxy so request handling stays under your control."
 );
 renderApiPreview();
+responsePreview.textContent = "Select or edit a sandbox payload, then send it through the Laravel backend proxy.";
