@@ -1,58 +1,209 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SSLCommerz Docs Copilot
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel-based SSLCommerz documentation workspace with:
 
-## About Laravel
+- documentation-first UI
+- backend-proxied sandbox API explorer
+- AI chat with session history
+- grounded chat foundation using a local SSLCommerz knowledge base
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+This project is currently focused on the chatbot experience first. It is not yet a full independent `SSLCommerz AI` agent.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Current Scope
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Implemented:
 
-## Learning Laravel
+- SSLCommerz-themed documentation UI
+- `Chat`, `API Explorer`, and `AI Tools` panel structure
+- sandbox request proxy through Laravel
+- chat sessions persisted in MySQL
+- Ollama/OpenAI provider abstraction
+- grounded chat foundation with local knowledge documents and citations
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+Not implemented yet:
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- vector embeddings
+- vector database
+- full semantic RAG
+- automatic doc crawling/ingestion
+- codebase-aware agent behavior
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+## Stack
 
-## Agentic Development
+- Laravel
+- MySQL
+- Docker Compose
+- Ollama for local AI development
+- OpenAI-ready provider path for later use
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## Run With Docker
+
+From the project root:
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+docker compose up --build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Then open:
 
-## Contributing
+- App: [http://localhost:8000](http://localhost:8000)
+- MySQL host port: `3307`
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Current database credentials:
 
-## Code of Conduct
+- host inside Docker: `mysql`
+- host from your machine: `127.0.0.1`
+- port from your machine: `3307`
+- database: `sslcopilot`
+- username: `sslcopilot`
+- password: `sslcopilot`
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## Local AI Configuration
 
-## Security Vulnerabilities
+The app is currently configured for local Ollama development.
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Relevant environment values:
 
-## License
+```env
+AI_PROVIDER=ollama
+OLLAMA_BASE_URL=http://host.docker.internal:11434
+OLLAMA_MODEL=llama3.2:latest
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+If you want to switch later:
+
+```env
+AI_PROVIDER=openai
+OPENAI_API_KEY=...
+OPENAI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4.1-mini
+```
+
+## Main API Endpoints
+
+SSLCommerz sandbox proxy:
+
+- `POST /api/sslcommerz/initiate`
+- `POST /api/sslcommerz/validation`
+- `POST /api/sslcommerz/refund`
+- `POST /api/sslcommerz/transactionQuery`
+
+AI endpoints:
+
+- `POST /api/ai/chat`
+- `GET /api/ai/sessions`
+- `GET /api/ai/sessions/{id}`
+- `POST /api/ai/analyze/payload`
+- `POST /api/ai/analyze/log`
+
+## How Chat Works Now
+
+The current chat is no longer only plain LLM chat.
+
+Flow:
+
+1. The frontend sends the message to `POST /api/ai/chat`.
+2. Laravel creates or loads the chat session.
+3. `ChatOrchestrator` saves the user message.
+4. `SslCommerzDocsRetriever` searches the local SSLCommerz knowledge chunks.
+5. Retrieved chunks are inserted into the system prompt as grounded context.
+6. The configured AI provider is called.
+7. The assistant response is saved with metadata including sources.
+8. The frontend renders the answer and citations under the message.
+
+Important:
+
+- this is a grounded chat foundation
+- it is not vector RAG yet
+- retrieval is currently keyword-scored over local knowledge chunks
+
+## Knowledge Base Structure
+
+The current knowledge layer is config-driven.
+
+Source config:
+
+- [config/sslcommerz_knowledge.php](config/sslcommerz_knowledge.php)
+
+Persistence:
+
+- `knowledge_documents`
+- `knowledge_chunks`
+
+Models:
+
+- [app/Models/KnowledgeDocument.php](app/Models/KnowledgeDocument.php)
+- [app/Models/KnowledgeChunk.php](app/Models/KnowledgeChunk.php)
+
+Services:
+
+- [app/Services/AI/SslCommerzKnowledgeBootstrapper.php](app/Services/AI/SslCommerzKnowledgeBootstrapper.php)
+- [app/Services/AI/SslCommerzDocsRetriever.php](app/Services/AI/SslCommerzDocsRetriever.php)
+
+### Documents vs Chunks
+
+A document is a top-level source like:
+
+- `Initiate Payment`
+- `Order Validation`
+- `IPN and Callbacks`
+
+A chunk is a smaller retrievable unit inside that document, for example:
+
+- `Required Session Parameters`
+- `IPN vs Redirect URLs`
+- `Validation Response and Risk`
+
+This chunking is what the retriever searches against.
+
+## What “Grounded” Means Here
+
+Grounded means the chat tries to answer from stored SSLCommerz docs context instead of relying only on the model’s own memory.
+
+Current grounded behavior:
+
+- retrieves relevant local SSLCommerz chunks first
+- includes sources in the assistant message metadata
+- renders citations in the UI
+
+Current limitation:
+
+- if Ollama/OpenAI is unavailable, fallback responses are used
+- citations may still appear, but the final wording may come from fallback logic rather than model generation
+
+## Known Limitations
+
+- not vector-based yet
+- knowledge base is manually curated in config, not auto-ingested from the website
+- local Ollama connectivity from Docker must work for fully model-generated answers
+- payload/log analyzers exist, but chatbot quality is the current primary focus
+
+## Next Recommended Step
+
+To move from grounded chat foundation to real RAG:
+
+1. add embeddings for knowledge chunks
+2. add vector storage
+3. swap keyword retrieval for vector or hybrid retrieval
+4. keep the same citation-oriented chat contract
+
+## MySQL Access From External Tools
+
+If you want to inspect this project database from another tool or another container:
+
+- host from your machine: `127.0.0.1`
+- port: `3307`
+- database: `sslcopilot`
+- username: `sslcopilot`
+- password: `sslcopilot`
+
+If another Docker container needs access, either:
+
+- connect to `host.docker.internal:3307`
+- or join the same Docker network and use the service name `mysql`
+
+## Notes
+
+- The old static prototype files still exist in the repo root, but the live app is Laravel-served.
+- The temporary `laravel-app/` scaffold directory is also still present.
+- The current branch is using local commits only.
