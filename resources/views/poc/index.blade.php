@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="{{ asset('copilot/styles.css') }}" />
@@ -15,8 +15,10 @@
   <body>
     <header class="topbar">
       <div class="brand">
-        <div class="brand-mark">S</div>
-        <div>
+        <div class="brand-mark" aria-label="SSLCommerz brand">
+          <span class="brand-wordmark">SSLCOMMERZ</span>
+        </div>
+        <div class="brand-copy">
           <strong>SSLCOMMERZ Developer Arena</strong>
           <span>AI-enhanced documentation POC</span>
         </div>
@@ -368,15 +370,37 @@
           </div>
         </div>
         <div class="panel-intro">
-          <p class="panel-kicker">AI extension panel</p>
-          <h2>Chat + Try This API</h2>
-          <p>
-            This is the enhancement layer for the documentation experience. Sandbox
-            requests are sent through your backend proxy so credentials and request
-            handling stay under your control. The long-term goal is an AI-centric
-            panel for log analysis, payload review, NLP-based doc assistance, and
-            troubleshooting workflows.
-          </p>
+          <div class="panel-intro-row">
+            <div>
+              <p class="panel-kicker">AI extension panel</p>
+              <h2>Assistant Workspace</h2>
+            </div>
+            <button
+              type="button"
+              class="secondary-btn icon-btn"
+              id="panelInfoBtn"
+              aria-label="Open assistant panel info"
+              title="Open assistant panel info"
+            >
+              <span aria-hidden="true">i</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-info-modal is-hidden" id="panelInfoModal">
+          <div class="panel-info-card">
+            <div class="panel-info-head">
+              <strong>About This Panel</strong>
+              <button type="button" class="preview-copy-btn" id="panelInfoCloseBtn">Close</button>
+            </div>
+            <p>
+              This is the enhancement layer for the documentation experience. Sandbox
+              requests are sent through your backend proxy so credentials and request
+              handling stay under your control. The long-term goal is an AI-centric
+              panel for log analysis, payload review, NLP-based doc assistance, and
+              troubleshooting workflows.
+            </p>
+          </div>
         </div>
 
         <details class="credential-box">
@@ -398,36 +422,69 @@
 
         <div class="tabs" role="tablist" aria-label="Assistant tabs">
           <button class="tab active tab-ai" data-tab="chat" type="button">
-            <span class="tab-ai-badge" aria-hidden="true">AI</span>
             <span>Chat</span>
+            <span class="tab-ai-badge" aria-hidden="true">AI</span>
           </button>
-          <button class="tab" data-tab="api" type="button">Try This API</button>
+          <button class="tab" data-tab="api" type="button">API Explorer</button>
+          <button class="tab tab-ai" data-tab="tools" type="button">
+            <span>Tools</span>
+            <span class="tab-ai-badge" aria-hidden="true">AI</span>
+          </button>
         </div>
 
         <section class="panel-view active" id="chatPanel">
-          <div class="ai-chat-badge" aria-label="AI chat assistant">
-            <span class="ai-chat-badge-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" role="img" focusable="false">
-                <path
-                  d="M12 2l1.6 4.4L18 8l-4.4 1.6L12 14l-1.6-4.4L6 8l4.4-1.6L12 2zm7 9l.9 2.1L22 14l-2.1.9L19 17l-.9-2.1L16 14l2.1-.9L19 11zM7 13l1.2 2.8L11 17l-2.8 1.2L7 21l-1.2-2.8L3 17l2.8-1.2L7 13z"
-                  fill="currentColor"
-                />
-              </svg>
-            </span>
-            <div>
-              <strong>AI Assistant Chat</strong>
-              <span>Future workspace for log analysis, payload review, and NLP guidance.</span>
+          <div class="chat-toolbar">
+            <div class="chat-toolbar-actions">
+              <button
+                type="button"
+                class="secondary-btn icon-btn"
+                id="newSessionBtn"
+                aria-label="Start a new chat session"
+                title="Start a new chat session"
+              >
+                <span aria-hidden="true">+</span>
+              </button>
+              <button type="button" class="secondary-btn toolbar-btn" id="toggleSessionsBtn">Sessions</button>
             </div>
           </div>
+          <div class="chat-session-drawer is-hidden" id="sessionHistoryPopover">
+            <div class="chat-session-drawer-head">
+              <strong>Chat Sessions</strong>
+              <div class="chat-session-drawer-actions">
+                <button
+                  type="button"
+                  class="preview-copy-btn icon-only-btn"
+                  id="refreshSessionsBtn"
+                  aria-label="Refresh chat sessions"
+                  title="Refresh chat sessions"
+                >
+                  <span aria-hidden="true">↻</span>
+                </button>
+                <button
+                  type="button"
+                  class="preview-copy-btn icon-only-btn"
+                  id="closeSessionsBtn"
+                  aria-label="Close chat sessions"
+                  title="Close chat sessions"
+                >
+                  <span aria-hidden="true">✕</span>
+                </button>
+              </div>
+            </div>
+            <div class="session-list" id="chatSessions"></div>
+          </div>
           <div class="chat-feed" id="chatFeed"></div>
-          <div class="quick-prompts" id="promptGrid"></div>
+          <div class="quick-prompts" id="promptGrid" aria-label="Chat presets"></div>
           <form class="chat-form" id="chatForm">
             <textarea
               id="chatInput"
               rows="3"
               placeholder="Ask about parameters, IPN, validation, or sandbox usage..."
             ></textarea>
-            <button type="submit">Ask</button>
+            <button type="submit" class="submit-btn" id="chatSubmitBtn">
+              <span class="btn-spinner" aria-hidden="true"></span>
+              <span class="btn-label">Ask AI</span>
+            </button>
           </form>
         </section>
 
@@ -478,10 +535,77 @@
             </div>
           </div>
         </section>
+
+        <section class="panel-view" id="toolsPanel">
+          <div class="ai-chat-badge" aria-label="AI analysis tools">
+            <span class="ai-chat-badge-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="img" focusable="false">
+                <path
+                  d="M12 2l1.6 4.4L18 8l-4.4 1.6L12 14l-1.6-4.4L6 8l4.4-1.6L12 2zm7 9l.9 2.1L22 14l-2.1.9L19 17l-.9-2.1L16 14l2.1-.9L19 11zM7 13l1.2 2.8L11 17l-2.8 1.2L7 21l-1.2-2.8L3 17l2.8-1.2L7 13z"
+                  fill="currentColor"
+                />
+              </svg>
+            </span>
+            <div>
+              <strong>AI Tools</strong>
+              <span>Structured analyzers for payloads, logs, and future SSLCommerz diagnostics.</span>
+            </div>
+          </div>
+          <details class="preview-block" id="analysisToolsBlock" open>
+            <summary class="preview-title">
+              <span>AI Analysis Tools</span>
+            </summary>
+            <div class="analysis-tools">
+              <div class="analysis-actions">
+                <button type="button" class="secondary-btn analysis-action-btn" data-analysis-target="payload">
+                  Analyze API Result
+                </button>
+                <button type="button" class="secondary-btn analysis-action-btn" data-analysis-target="log">
+                  Analyze Logs
+                </button>
+              </div>
+              <form class="analysis-form" id="analysisForm">
+                <label>
+                  Analysis Type
+                  <select id="analysisType">
+                    <option value="payload">Payload Analyzer</option>
+                    <option value="log">Log Analyzer</option>
+                  </select>
+                </label>
+                <label id="analysisModeWrap">
+                  SSLCommerz Mode
+                  <select id="analysisMode">
+                    <option value="initiate">Initiate Payment</option>
+                    <option value="validation">Order Validation</option>
+                    <option value="refund">Refund API</option>
+                    <option value="transactionQuery">Transaction Query</option>
+                  </select>
+                </label>
+                <label>
+                  Analysis Input
+                  <textarea
+                    id="analysisInput"
+                    rows="6"
+                    placeholder='Paste JSON payload or raw logs here...'
+                  ></textarea>
+                </label>
+                <button type="submit" class="submit-btn" id="analysisSubmitBtn">
+                  <span class="btn-spinner" aria-hidden="true"></span>
+                  <span class="btn-label">Run Analysis</span>
+                </button>
+              </form>
+              <details class="preview-block analysis-result-block" id="analysisResultBlock" open>
+                <summary class="preview-title">Analysis Result</summary>
+                <pre id="analysisResultPreview">Run a payload or log analysis from this panel.</pre>
+              </details>
+            </div>
+          </details>
+        </section>
       </aside>
     </div>
     <script>
       window.SSL_COPILOT_API_BASE = "{{ url('/api/sslcommerz') }}";
+      window.SSL_COPILOT_AI_API_BASE = "{{ url('/api/ai') }}";
     </script>
     <script src="{{ asset('copilot/app.js') }}"></script>
   </body>

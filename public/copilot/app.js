@@ -7,34 +7,6 @@ const promptCards = [
   "What will be replaced later by real AI retrieval?",
 ];
 
-const knowledgeBase = [
-  {
-    keywords: ["all", "everything", "parameter", "fields", "initiate"],
-    answer:
-      "The documentation area now covers the main SSLCommerz integration flow, environment rules, initiate-payment parameters, advanced fields for EMI and verticals, response fields, validation, IPN, refund flows, query APIs, and related developer arena modules. The Try This API panel can switch between multiple API patterns instead of staying fixed on initiate-payment.",
-  },
-  {
-    keywords: ["ipn", "redirect", "success", "fail", "cancel"],
-    answer:
-      "Success, fail, and cancel URLs are browser redirects. IPN is a server-to-server notification channel. That difference matters because browser redirects are not reliable enough to be the only payment status signal.",
-  },
-  {
-    keywords: ["future", "later", "ai", "rag", "vector", "retrieval", "analyzer", "nlp", "log", "payload"],
-    answer:
-      "The long-term direction for this panel is AI-centric: log analysis, payload analysis, NLP-style assistance, troubleshooting, and context-aware API guidance. In the current phase it remains a local mock so the interface and workflow can be finalized first.",
-  },
-  {
-    keywords: ["refund", "validation", "query"],
-    answer:
-      "The documentation now includes dedicated validation, refund, and transaction query flows. Each has its own brief, parameter explanation table, and a Try This API action that routes into the right-side sandbox panel.",
-  },
-  {
-    keywords: ["sandbox", "test", "credentials", "card"],
-    answer:
-      "Try This API is sandbox-only by design. You can save sandbox credentials in browser session storage from the credential vault so store_id and store_passwd do not need to be retyped for each request mode.",
-  },
-];
-
 const apiConfigs = {
   initiate: {
     title: "Initiate Payment",
@@ -45,7 +17,7 @@ const apiConfigs = {
         title: "Authentication and transaction",
         fields: [
           ["storeId", "Store ID", "text", "testbox", "Official sandbox store id.", true],
-          ["storePassword", "Store Password", "text", "qwerty", "Official sandbox store password.", true],
+          ["storePassword", "Store Password", "password", "qwerty", "Official sandbox store password.", true],
           ["totalAmount", "Total Amount", "number", "1200.00", "Transaction amount.", true],
           ["currency", "Currency", "text", "BDT", "Three-character currency code.", true],
           ["tranId", "Transaction ID", "text", "INV-10001", "Unique transaction identifier.", true],
@@ -150,7 +122,7 @@ const apiConfigs = {
         title: "Authentication",
         fields: [
           ["storeId", "Store ID", "text", "testbox", "Sandbox store id.", true],
-          ["storePassword", "Store Password", "text", "qwerty", "Sandbox store password.", true],
+          ["storePassword", "Store Password", "password", "qwerty", "Sandbox store password.", true],
         ],
       },
       {
@@ -172,7 +144,7 @@ const apiConfigs = {
         title: "Authentication",
         fields: [
           ["storeId", "Store ID", "text", "testbox", "Sandbox store id.", true],
-          ["storePassword", "Store Password", "text", "qwerty", "Sandbox store password.", true],
+          ["storePassword", "Store Password", "password", "qwerty", "Sandbox store password.", true],
         ],
       },
       {
@@ -197,7 +169,7 @@ const apiConfigs = {
         title: "Authentication",
         fields: [
           ["storeId", "Store ID", "text", "testbox", "Sandbox store id.", true],
-          ["storePassword", "Store Password", "text", "qwerty", "Sandbox store password.", true],
+          ["storePassword", "Store Password", "password", "qwerty", "Sandbox store password.", true],
         ],
       },
       {
@@ -619,6 +591,20 @@ const promptGrid = document.getElementById("promptGrid");
 const chatFeed = document.getElementById("chatFeed");
 const chatForm = document.getElementById("chatForm");
 const chatInput = document.getElementById("chatInput");
+const chatSubmitBtn = document.getElementById("chatSubmitBtn");
+const chatSessions = document.getElementById("chatSessions");
+const newSessionBtn = document.getElementById("newSessionBtn");
+const toggleSessionsBtn = document.getElementById("toggleSessionsBtn");
+const sessionHistoryPopover = document.getElementById("sessionHistoryPopover");
+const closeSessionsBtn = document.getElementById("closeSessionsBtn");
+const refreshSessionsBtn = document.getElementById("refreshSessionsBtn");
+const analysisForm = document.getElementById("analysisForm");
+const analysisType = document.getElementById("analysisType");
+const analysisMode = document.getElementById("analysisMode");
+const analysisModeWrap = document.getElementById("analysisModeWrap");
+const analysisInput = document.getElementById("analysisInput");
+const analysisSubmitBtn = document.getElementById("analysisSubmitBtn");
+const analysisResultPreview = document.getElementById("analysisResultPreview");
 const apiForm = document.getElementById("apiForm");
 const apiFields = document.getElementById("apiFields");
 const curlPreview = document.getElementById("curlPreview");
@@ -634,30 +620,279 @@ const docLinks = document.querySelectorAll(".doc-link");
 const apiTryButtons = document.querySelectorAll("[data-api-target]");
 const panelFullscreenBtn = document.getElementById("panelFullscreenBtn");
 const panelCloseBtn = document.getElementById("panelCloseBtn");
+const panelInfoBtn = document.getElementById("panelInfoBtn");
+const panelInfoModal = document.getElementById("panelInfoModal");
+const panelInfoCloseBtn = document.getElementById("panelInfoCloseBtn");
 const responseBlock = document.getElementById("responseBlock");
+const chatPanel = document.getElementById("chatPanel");
+const apiPanel = document.getElementById("apiPanel");
+const toolsPanel = document.getElementById("toolsPanel");
 
 let requestInFlight = false;
 let copyCurlResetTimer;
+let currentAiSessionId = null;
+let chatRequestInFlight = false;
+let analysisRequestInFlight = false;
+let activeChatRequestController = null;
 
-function addMessage(role, text) {
+function addMessage(role, text, meta = null) {
   const node = document.createElement("div");
   node.className = `message ${role}`;
-  node.textContent = text;
+
+  const body = document.createElement("div");
+  body.className = "message-body";
+  body.textContent = text;
+  node.appendChild(body);
+
+  const sources = meta?.sources || [];
+  if (role === "assistant" && sources.length) {
+    const citationList = document.createElement("div");
+    citationList.className = "message-citations";
+
+    sources.forEach((source) => {
+      const citation = document.createElement(source.url ? "a" : "span");
+      citation.className = "message-citation";
+      citation.textContent = source.section
+        ? `${source.title} · ${source.section}`
+        : source.title;
+
+      if (source.url) {
+        citation.href = source.url;
+        citation.target = "_blank";
+        citation.rel = "noreferrer";
+      }
+
+      citationList.appendChild(citation);
+    });
+
+    node.appendChild(citationList);
+  }
+
   chatFeed.appendChild(node);
   chatFeed.scrollTop = chatFeed.scrollHeight;
 }
 
-function getAnswer(question) {
-  const normalized = question.toLowerCase();
-  const match = knowledgeBase.find((entry) =>
-    entry.keywords.some((keyword) => normalized.includes(keyword))
-  );
+function seedNewChatState() {
+  currentAiSessionId = null;
+  renderChatMessages([]);
+  promptGrid.classList.remove("is-hidden");
+}
 
-  if (match) {
-    return match.answer;
+function renderChatMessages(messages) {
+  chatFeed.innerHTML = "";
+  [...messages]
+    .sort((a, b) => {
+      if (a.created_at && b.created_at) {
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      }
+
+      return Number(a.id || 0) - Number(b.id || 0);
+    })
+    .forEach((message) => addMessage(message.role, message.content, message.meta));
+
+  promptGrid.classList.toggle("is-hidden", messages.length > 0);
+}
+
+function renderSessionList(sessions) {
+  chatSessions.innerHTML = "";
+
+  if (!sessions.length) {
+    chatSessions.innerHTML = '<div class="session-empty">No chat sessions yet.</div>';
+    return;
   }
 
-  return "This assistant remains a local mock, but the page now reflects a much wider portion of the official SSLCommerz developer documentation. Ask about initiate-payment fields, IPN, validation, refund, query APIs, sandbox data, or the future AI roadmap.";
+  sessions.forEach((session) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "session-item";
+    button.innerHTML = `<strong>${escapeHtml(session.title || `Session #${session.id}`)}</strong><span>${escapeHtml(session.last_message_at || session.created_at || "No timestamp")}</span>`;
+    button.classList.toggle("active", Number(currentAiSessionId) === Number(session.id));
+    button.addEventListener("click", () => loadAiSession(session.id));
+    chatSessions.appendChild(button);
+  });
+}
+
+function setChatSubmitState(isLoading) {
+  chatRequestInFlight = isLoading;
+  chatSubmitBtn.classList.toggle("is-loading", isLoading);
+  chatSubmitBtn.classList.toggle("is-stop-mode", isLoading);
+  const label = chatSubmitBtn.querySelector(".btn-label");
+  if (label) {
+    label.textContent = isLoading ? "Stop Thinking" : "Ask AI";
+  }
+}
+
+function setAnalysisSubmitState(isLoading) {
+  analysisRequestInFlight = isLoading;
+  analysisSubmitBtn.disabled = isLoading;
+  analysisSubmitBtn.classList.toggle("is-loading", isLoading);
+  const label = analysisSubmitBtn.querySelector(".btn-label");
+  if (label) {
+    label.textContent = isLoading ? "Analyzing..." : "Run Analysis";
+  }
+}
+
+async function loadAiSessions() {
+  try {
+    const response = await fetch(`${window.SSL_COPILOT_AI_API_BASE}/sessions`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = await response.json();
+    renderSessionList(data?.data || []);
+  } catch {
+    chatSessions.innerHTML = '<div class="session-empty">Unable to load chat sessions.</div>';
+  }
+}
+
+async function loadAiSession(sessionId) {
+  try {
+    const response = await fetch(`${window.SSL_COPILOT_AI_API_BASE}/sessions/${sessionId}`, {
+      headers: { Accept: "application/json" },
+    });
+    const data = await response.json();
+    currentAiSessionId = data?.data?.id || null;
+    renderChatMessages(data?.data?.messages || []);
+    sessionHistoryPopover.classList.add("is-hidden");
+    await loadAiSessions();
+  } catch {
+    addMessage("assistant", "Unable to load the selected chat session.");
+  }
+}
+
+function primeAnalysisInputFromApiResult() {
+  const currentResult = responsePreview.textContent.trim();
+
+  if (!currentResult || currentResult.startsWith("Select or edit a sandbox payload")) {
+    return;
+  }
+
+  document.getElementById("analysisToolsBlock").open = true;
+  document.getElementById("analysisResultBlock").open = true;
+  analysisType.value = "payload";
+  updateAnalysisModeVisibility();
+  analysisMode.value = apiSelector.value;
+  analysisInput.value = currentResult;
+  analysisInput.focus();
+}
+
+async function sendAiChatMessage(message) {
+  if (chatRequestInFlight) {
+    return;
+  }
+
+  addMessage("user", message);
+  chatInput.value = "";
+  promptGrid.classList.add("is-hidden");
+  setChatSubmitState(true);
+  activeChatRequestController = new AbortController();
+
+  try {
+    const response = await fetch(`${window.SSL_COPILOT_AI_API_BASE}/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify({
+        message,
+        session_id: currentAiSessionId,
+      }),
+      signal: activeChatRequestController.signal,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || `AI chat failed with status ${response.status}`);
+    }
+
+    currentAiSessionId = data?.session?.id || currentAiSessionId;
+    renderChatMessages(data?.messages || []);
+    await loadAiSessions();
+  } catch (error) {
+    if (error.name === "AbortError") {
+      addMessage("assistant", "Response stopped.");
+      return;
+    }
+
+    addMessage("assistant", `AI backend error: ${error.message}`);
+  } finally {
+    activeChatRequestController = null;
+    setChatSubmitState(false);
+  }
+}
+
+function updateAnalysisModeVisibility() {
+  analysisModeWrap.classList.toggle("is-hidden", analysisType.value !== "payload");
+}
+
+async function runAnalysis() {
+  if (analysisRequestInFlight) {
+    return;
+  }
+
+  const rawInput = analysisInput.value.trim();
+  if (!rawInput) {
+    analysisResultPreview.textContent = "Paste JSON payload or raw logs first.";
+    return;
+  }
+
+  const isPayload = analysisType.value === "payload";
+  const endpoint = isPayload ? "payload" : "log";
+  let body;
+
+  if (isPayload) {
+    let parsedPayload;
+    try {
+      parsedPayload = JSON.parse(rawInput);
+    } catch {
+      analysisResultPreview.textContent = "Payload analysis expects valid JSON.";
+      return;
+    }
+
+    body = {
+      mode: analysisMode.value,
+      payload: parsedPayload,
+    };
+  } else {
+    body = {
+      context: "SSLCommerz integration log analysis",
+      log: rawInput,
+    };
+  }
+
+  setAnalysisSubmitState(true);
+  document.getElementById("analysisResultBlock").open = true;
+  analysisResultPreview.textContent = "Running analysis...";
+
+  try {
+    const response = await fetch(`${window.SSL_COPILOT_AI_API_BASE}/analyze/${endpoint}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || `Analysis failed with status ${response.status}`);
+    }
+
+    analysisResultPreview.textContent = JSON.stringify(data, null, 2);
+  } catch (error) {
+    analysisResultPreview.textContent = JSON.stringify(
+      {
+        status: "AI_ANALYSIS_ERROR",
+        error: error.message,
+      },
+      null,
+      2
+    );
+  } finally {
+    setAnalysisSubmitState(false);
+  }
 }
 
 function buildPromptCards() {
@@ -668,6 +903,7 @@ function buildPromptCards() {
     button.addEventListener("click", () => {
       chatInput.value = prompt;
       chatInput.focus();
+      promptGrid.classList.add("is-hidden");
     });
     promptGrid.appendChild(button);
   });
@@ -877,6 +1113,8 @@ async function sendRealApiRequest() {
   responseBlock.open = true;
   responsePreview.textContent = "Sending request to SSLCommerz sandbox...";
   setSubmitState(true);
+  const requestStartedAt = Date.now();
+  let finalResponseText = "";
 
   try {
     const response = await fetch(`${window.SSL_COPILOT_API_BASE}/${configKey}`, {
@@ -894,7 +1132,7 @@ async function sendRealApiRequest() {
       throw new Error(data?.message || `Sandbox request failed with status ${response.status}`);
     }
 
-    responsePreview.textContent = JSON.stringify(
+    finalResponseText = JSON.stringify(
       data?.result ?? {
         message: "No upstream SSLCommerz result body was returned.",
       },
@@ -902,7 +1140,7 @@ async function sendRealApiRequest() {
       2
     );
   } catch (error) {
-    responsePreview.textContent = JSON.stringify(
+    finalResponseText = JSON.stringify(
       {
         status: "BACKEND_PROXY_ERROR",
         message: "Unable to complete the SSLCommerz request through the backend proxy.",
@@ -912,6 +1150,15 @@ async function sendRealApiRequest() {
       2
     );
   } finally {
+    const elapsed = Date.now() - requestStartedAt;
+    const minimumVisibleMs = 2000;
+    const remainingDelay = Math.max(0, minimumVisibleMs - elapsed);
+
+    if (remainingDelay > 0) {
+      await new Promise((resolve) => window.setTimeout(resolve, remainingDelay));
+    }
+
+    responsePreview.textContent = finalResponseText;
     setSubmitState(false);
   }
 }
@@ -921,6 +1168,16 @@ function setActiveDocLink(id) {
     const isActive = link.getAttribute("href") === `#${id}`;
     link.classList.toggle("active", isActive);
   });
+}
+
+function setActivePanel(target) {
+  document.querySelectorAll(".tab").forEach((button) => {
+    button.classList.toggle("active", button.dataset.tab === target);
+  });
+
+  chatPanel.classList.toggle("active", target === "chat");
+  apiPanel.classList.toggle("active", target === "api");
+  toolsPanel.classList.toggle("active", target === "tools");
 }
 
 function setupScrollSpy() {
@@ -947,13 +1204,7 @@ function activateApiPanel(configKey) {
   apiSelector.value = configKey;
   buildApiFields(configKey);
   renderApiPreview();
-
-  document.querySelectorAll(".tab").forEach((button) => {
-    button.classList.toggle("active", button.dataset.tab === "api");
-  });
-
-  document.getElementById("chatPanel").classList.remove("active");
-  document.getElementById("apiPanel").classList.add("active");
+  setActivePanel("api");
   document.getElementById("assistant").scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
@@ -971,24 +1222,29 @@ function togglePanelFullscreen() {
   panelCloseBtn.classList.toggle("is-hidden", !nextState);
 
   if (nextState) {
-    document.querySelectorAll(".tab").forEach((button) => {
-      button.classList.toggle("active", button.dataset.tab === "api");
-    });
-    document.getElementById("chatPanel").classList.remove("active");
-    document.getElementById("apiPanel").classList.add("active");
+    setActivePanel("api");
   }
 }
 
 document.querySelectorAll(".tab").forEach((tab) => {
   tab.addEventListener("click", () => {
-    const target = tab.dataset.tab;
+    setActivePanel(tab.dataset.tab);
+  });
+});
 
-    document.querySelectorAll(".tab").forEach((button) => {
-      button.classList.toggle("active", button === tab);
-    });
+document.querySelectorAll("[data-analysis-target]").forEach((button) => {
+  button.addEventListener("click", () => {
+    setActivePanel("tools");
+    document.getElementById("assistant").scrollIntoView({ behavior: "smooth", block: "start" });
+    document.getElementById("analysisToolsBlock").open = true;
+    analysisType.value = button.dataset.analysisTarget === "log" ? "log" : "payload";
+    updateAnalysisModeVisibility();
 
-    document.getElementById("chatPanel").classList.toggle("active", target === "chat");
-    document.getElementById("apiPanel").classList.toggle("active", target === "api");
+    if (analysisType.value === "payload") {
+      primeAnalysisInputFromApiResult();
+    } else {
+      analysisInput.focus();
+    }
   });
 });
 
@@ -1000,15 +1256,52 @@ apiTryButtons.forEach((button) => {
 
 chatForm.addEventListener("submit", (event) => {
   event.preventDefault();
+
+  if (chatRequestInFlight) {
+    activeChatRequestController?.abort();
+    return;
+  }
+
   const question = chatInput.value.trim();
 
   if (!question) {
     return;
   }
 
-  addMessage("user", question);
-  addMessage("assistant", getAnswer(question));
-  chatInput.value = "";
+  sendAiChatMessage(question);
+});
+
+analysisType.addEventListener("change", updateAnalysisModeVisibility);
+
+analysisForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  runAnalysis();
+});
+
+refreshSessionsBtn.addEventListener("click", async (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  await loadAiSessions();
+});
+
+toggleSessionsBtn.addEventListener("click", async () => {
+  const willOpen = sessionHistoryPopover.classList.contains("is-hidden");
+  sessionHistoryPopover.classList.toggle("is-hidden", !willOpen);
+
+  if (willOpen) {
+    await loadAiSessions();
+  }
+});
+
+newSessionBtn.addEventListener("click", () => {
+  sessionHistoryPopover.classList.add("is-hidden");
+  seedNewChatState();
+  chatInput.focus();
+  loadAiSessions();
+});
+
+closeSessionsBtn.addEventListener("click", () => {
+  sessionHistoryPopover.classList.add("is-hidden");
 });
 
 credentialForm.addEventListener("submit", (event) => {
@@ -1041,6 +1334,14 @@ panelFullscreenBtn.addEventListener("click", () => {
   togglePanelFullscreen();
 });
 
+panelInfoBtn.addEventListener("click", () => {
+  panelInfoModal.classList.remove("is-hidden");
+});
+
+panelInfoCloseBtn.addEventListener("click", () => {
+  panelInfoModal.classList.add("is-hidden");
+});
+
 panelCloseBtn.addEventListener("click", () => {
   if (document.body.classList.contains("panel-fullscreen")) {
     togglePanelFullscreen();
@@ -1059,9 +1360,8 @@ buildDocumentationTables();
 hydrateCredentialForm();
 buildApiFields(apiSelector.value);
 setupScrollSpy();
-addMessage(
-  "assistant",
-  "This panel is being shaped toward an AI-centric workflow for payload analysis, log inspection, NLP assistance, and guided API troubleshooting. Sandbox API calls are now sent through the Laravel backend proxy so request handling stays under your control."
-);
+updateAnalysisModeVisibility();
+loadAiSessions();
+seedNewChatState();
 renderApiPreview();
 responsePreview.textContent = "Select or edit a sandbox payload, then send it through the Laravel backend proxy.";
